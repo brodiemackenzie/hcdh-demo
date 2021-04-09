@@ -28,6 +28,7 @@ provider "google-beta" {
 provider "local" {}
 
 # Enable services - TDB
+
 # Create notebook service account 
 
 resource "google_service_account" "notebook_service_account" {
@@ -35,7 +36,16 @@ resource "google_service_account" "notebook_service_account" {
   display_name = "sa-nb-hcdh"
 }
 
-# Create service account key file - TBD
+# Create service account key and key file
+
+resource "google_service_account_key" "notebook_service_account_key" {    
+  service_account_id = google_service_account.notebook_service_account.name
+}
+
+resource "local_file" "notebook_service_account_key_file" {
+    content  = base64decode("${google_service_account_key.notebook_service_account_key.private_key}")
+    filename = "../service_accounts/${google_service_account.notebook_service_account.display_name}-key.json"
+}
 
 # Add roles to notebook service account
 
@@ -139,9 +149,7 @@ resource "local_file" "sample_hl7v2_message" {
 # Create .env variables file - TBD
 
 # resource "null_resource" "notebook_environment_vars_file" {
-        
 #    provisioner "local-exec" {
-    
 #    command = <<EOF
 #    cd ~/healthcare-data-harmonization
 #    EOF
