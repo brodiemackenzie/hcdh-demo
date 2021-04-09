@@ -25,6 +25,9 @@ provider "google-beta" {
 
 }
 
+provider "local" {}
+provider "null" {}
+
 # Enable services
 # Create notebook service account 
 # Add roles to notebook service account
@@ -56,7 +59,7 @@ resource "google_healthcare_dataset" "dataset" {
   location = "us-central1"
 }
 
-# Create HL7v2 Store
+# Create HL7v2 Store with default schematized parsing
 
 resource "google_healthcare_hl7_v2_store" "store" {
   provider = google-beta
@@ -75,6 +78,20 @@ resource "google_healthcare_hl7_v2_store" "store" {
     }
     EOF    
     }
+}
+
+# Create sample base64encoded HL7v2 message json file
+
+resource "local_file" "sample_hl7v2_message" {
+    content  = ""
+    filename = "./adt_a01.hl7.base64encoded.json"
+
+        provisioner "local-exec" {
+        command = <<EOF
+        echo -e "{\n \"message\": {\n\t \"data\":\n \"$(base64 -w 0 ~/healthcare-data-harmonization/mapping_configs/hl7v2_fhir_stu3/adt_a01.hl7)\"\n }\n}" >> adt_a01.hl7.base64encoded.json
+        EOF
+    }
+
 }
 
 # Upload sample message to HL7v2 store 
