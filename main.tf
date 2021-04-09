@@ -35,6 +35,8 @@ resource "google_service_account" "notebook_service_account" {
   display_name = "sa-nb-hcdh"
 }
 
+# Create service account key file - TBD
+
 # Add roles to notebook service account
 
 resource "google_project_iam_member" "member_binding_storage_admin" {
@@ -88,6 +90,7 @@ resource "google_healthcare_hl7_v2_store" "store" {
     
     allow_null_header  = false
     segment_terminator = "Cg=="
+    version = "V1"
     schema = <<EOF
     {
         "schematizedParsingType": "SOFT_FAIL",
@@ -95,6 +98,14 @@ resource "google_healthcare_hl7_v2_store" "store" {
     }
     EOF    
     }
+
+# Ignore updates to parser_config to prevent parser_config.version field immutable error
+
+    lifecycle {
+      ignore_changes = [
+        parser_config
+    ]
+  }    
 
 # Upload sample message to HL7v2 store 
 
@@ -104,7 +115,8 @@ resource "google_healthcare_hl7_v2_store" "store" {
         -H "Authorization: Bearer $(gcloud auth application-default print-access-token)" \
         -H "Content-Type: application/json; charset=utf-8" \
         --data-binary @adt_a01.hl7.base64encoded.json \
-        https://healthcare.googleapis.com/v1/projects/hdc-demo-307717/locations/us-central1/datasets/hcdh-dataset/hl7V2Stores/hcdh-hl7-v2-store/messages
+        https://healthcare.googleapis.com/v1/${google_healthcare_hl7_v2_store.store.self_link}/messages        
+#        https://healthcare.googleapis.com/v1/projects/hdc-demo-307717/locations/us-central1/datasets/hcdh-dataset/hl7V2Stores/hcdh-hl7-v2-store/messages
         EOF
     }
 
@@ -124,4 +136,14 @@ resource "local_file" "sample_hl7v2_message" {
 
 }
 
-# Create .env variables file
+# Create .env variables file - TBD
+
+# resource "null_resource" "notebook_environment_vars_file" {
+        
+#    provisioner "local-exec" {
+    
+#    command = <<EOF
+#    cd ~/healthcare-data-harmonization
+#    EOF
+#    }
+#}
