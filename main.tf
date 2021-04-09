@@ -26,11 +26,29 @@ provider "google-beta" {
 }
 
 provider "local" {}
-provider "null" {}
 
-# Enable services
+# Enable services - TDB
 # Create notebook service account 
+
+resource "google_service_account" "notebook_service_account" {
+  account_id   = "sa-nb-hcdh"
+  display_name = "sa-nb-hcdh"
+}
+
 # Add roles to notebook service account
+
+resource "google_project_iam_member" "member_binding_storage_admin" {
+  project = var.project
+  role    = "roles/storage.admin"
+  member  = "serviceAccount:${google_service_account.notebook_service_account.email}"
+}
+
+resource "google_project_iam_member" "member_binding_hl7v2_editor" {
+  project = var.project
+  role    = "roles/healthcare.hl7V2Editor"
+  member  = "serviceAccount:${google_service_account.notebook_service_account.email}"
+}
+
 # Create GCS sample data bucket
 
 resource "random_string" "bucket" {
@@ -70,7 +88,6 @@ resource "google_healthcare_hl7_v2_store" "store" {
     
     allow_null_header  = false
     segment_terminator = "Cg=="
-    version            = "V2"
     schema = <<EOF
     {
         "schematizedParsingType": "SOFT_FAIL",
@@ -78,6 +95,19 @@ resource "google_healthcare_hl7_v2_store" "store" {
     }
     EOF    
     }
+
+# Upload sample message to HL7v2 store 
+
+    provisioner "local-exec" {
+        command = <<EOF
+        curl -X POST \
+        -H "Authorization: Bearer $(gcloud auth application-default print-access-token)" \
+        -H "Content-Type: application/json; charset=utf-8" \
+        --data-binary @adt_a01.hl7.base64encoded.json \
+        https://healthcare.googleapis.com/v1/projects/hdc-demo-307717/locations/us-central1/datasets/hcdh-dataset/hl7V2Stores/hcdh-hl7-v2-store/messages
+        EOF
+    }
+
 }
 
 # Create sample base64encoded HL7v2 message json file
@@ -94,5 +124,4 @@ resource "local_file" "sample_hl7v2_message" {
 
 }
 
-# Upload sample message to HL7v2 store 
 # Create .env variables file
